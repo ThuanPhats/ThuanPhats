@@ -10,11 +10,6 @@
   </a>
 
   <br/>
-  <!-- Hàng gà nhún nhảy -->
-  <img src="./mofupiyo.gif" height="45" />
-  <img src="./mofupiyo.gif" height="45" />
-  <img src="./mofupiyo.gif" height="45" />
-
 </div>
 
 ### Discord của mình
