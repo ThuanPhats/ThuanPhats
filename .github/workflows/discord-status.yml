@@ -60,15 +60,18 @@ jobs:
       - name: Inject into README
         run: |
           set -e
-          OUT="${{ steps.build.outputs.OUT }}"
-          awk -v rep="$OUT" '
-            BEGIN{start="<!-- DISCORD_STATUS_START -->"; end="<!-- DISCORD_STATUS_END -->"; in=0}
+          # OUT đã có sẵn từ step trước (đặt trong $GITHUB_ENV)
+          awk -v rep="$OUT" \
+              -v start="<!-- DISCORD_STATUS_START -->" \
+              -v end="<!-- DISCORD_STATUS_END -->" '
+            BEGIN { inside=0 }
             {
-              if ($0 ~ start) {print start; print rep; in=1; next}
-              if ($0 ~ end)   {in=0; print end; next}
-              if (!in) print
+              if (index($0, start)) { print start; print rep; inside=1; next }
+              if (index($0, end))   { inside=0; print end; next }
+              if (!inside) print
             }
-          ' README.md > README.tmp && mv README.tmp README.md
+          ' README.md > README.tmp
+          mv README.tmp README.md
 
       - name: Commit changes
         run: |
