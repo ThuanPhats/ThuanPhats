@@ -12,7 +12,7 @@
   <br/>
 </div>
 
-### Discord của mình
-<a href="https://discord.com/users/928478301943640114">
-  <img src="https://lanyard.cnrad.dev/api/928478301943640114?theme=dark&bg=0d1117&animated=true&hideDiscrim=true&borderRadius=20px&idleMessage=Ch%E1%BA%AFc+%C4%91ang+ng%E1%BB%A7+%F0%9F%90%A3" alt="Discord Presence"/>
-</a>
+## Discord status
+<!-- DISCORD_STATUS_START -->
+Đang tải trạng thái…
+<!-- DISCORD_STATUS_END -->
