@@ -1,0 +1,80 @@
+name: Update Discord Status
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"  # cập nhật mỗi 10 phút (UTC)
+  workflow_dispatch:        # có thể bấm chạy tay
+
+permissions:
+  contents: write           # cho phép push README
+
+env:
+  DISCORD_ID: "928478301943640114"
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ensure jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Fetch presence from Lanyard
+        run: |
+          set -e
+          curl -fsSL "https://api.lanyard.rest/v1/users/${DISCORD_ID}" -o lanyard.json
+
+      - name: Build human-readable status
+        id: build
+        run: |
+          set -e
+          JSON=$(cat lanyard.json)
+          STATUS=$(echo "$JSON" | jq -r '.data.discord_status // "offline"')
+          LISTEN=$(echo "$JSON" | jq -r '.data.listening_to_spotify // false')
+          CUSTOM=$(echo "$JSON" | jq -r '.data.activities[]? | select(.type==4) | .state' | head -n1)
+          GAME=$(echo "$JSON" | jq -r '.data.activities[]? | select(.type==0) | .name' | head -n1)
+
+          case "$STATUS" in
+            online)  BASE="🟢 Online";;
+            idle)    BASE="🌙 Idle";;
+            dnd)     BASE="⛔ DND";;
+            offline) BASE="⚫ Offline";;
+            *)       BASE="⚪ Unknown";;
+          esac
+
+          if [ "$LISTEN" = "true" ]; then
+            SONG=$(echo "$JSON" | jq -r '.data.spotify.song')
+            ARTIST=$(echo "$JSON" | jq -r '.data.spotify.artist')
+            OUT="🎧 Đang nghe: ${SONG} — ${ARTIST}"
+          elif [ -n "$GAME" ] && [ "$GAME" != "null" ]; then
+            OUT="${BASE} • 🎮 ${GAME}"
+          elif [ -n "$CUSTOM" ] && [ "$CUSTOM" != "null" ]; then
+            OUT="${BASE} • ${CUSTOM}"
+          else
+            OUT="${BASE}"
+          fi
+          echo "OUT=$OUT" >> $GITHUB_OUTPUT
+
+      - name: Inject into README
+        run: |
+          set -e
+          OUT="${{ steps.build.outputs.OUT }}"
+          awk -v rep="$OUT" '
+            BEGIN{start="<!-- DISCORD_STATUS_START -->"; end="<!-- DISCORD_STATUS_END -->"; in=0}
+            {
+              if ($0 ~ start) {print start; print rep; in=1; next}
+              if ($0 ~ end)   {in=0; print end; next}
+              if (!in) print
+            }
+          ' README.md > README.tmp && mv README.tmp README.md
+
+      - name: Commit changes
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "chore: update Discord status" || echo "No changes"
+          git push
