@@ -14,7 +14,7 @@
   
   <p align="center">
   <!-- DISCORD_STATUS_START -->
-⛔ DND • 🎮 Visual Studio Code • cập nhật: 22:58 26/11
+⛔ DND • 🎮 Visual Studio Code • cập nhật: 23:14 26/11
 <!-- DISCORD_STATUS_END -->
   </p>
 </div>
