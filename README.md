@@ -10,9 +10,10 @@
   </a>
 
   <br/>
+  ## Discord status
+<!-- DISCORD_STATUS_START -->
+Đang tải trạng thái…
+<!-- DISCORD_STATUS_END -->
 </div>
 
-## Discord status
-<!-- DISCORD_STATUS_START -->
 
-<!-- DISCORD_STATUS_END -->
