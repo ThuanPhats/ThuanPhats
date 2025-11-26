@@ -14,7 +14,7 @@
   
   <p align="center">
   <!-- DISCORD_STATUS_START -->
-⚫ Offline • cập nhật: 00:34 27/11
+⚫ Offline • cập nhật: 00:45 27/11
 <!-- DISCORD_STATUS_END -->
   </p>
 </div>
