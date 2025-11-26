@@ -2,14 +2,19 @@ name: Update Discord Status
 
 on:
   schedule:
-    - cron: "*/10 * * * *"  # cập nhật mỗi 10 phút (UTC)
-  workflow_dispatch:        # có thể bấm chạy tay
+    - cron: "*/10 * * * *"   # cập nhật mỗi 10 phút (UTC)
+  workflow_dispatch:         # có thể chạy tay
 
 permissions:
-  contents: write           # cho phép push README
+  contents: write
+
+concurrency:
+  group: profile-readme
+  cancel-in-progress: true
 
 env:
   DISCORD_ID: "928478301943640114"
+  TZ: "Asia/Ho_Chi_Minh"
 
 jobs:
   update:
@@ -18,60 +23,69 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Ensure jq
-        run: sudo apt-get update && sudo apt-get install -y jq
-
       - name: Fetch presence from Lanyard
         run: |
           set -e
-          curl -fsSL "https://api.lanyard.rest/v1/users/${DISCORD_ID}" -o lanyard.json
+          CODE=$(curl -sS -w "%{http_code}" -o lanyard.json "https://api.lanyard.rest/v1/users/${DISCORD_ID}")
+          echo "HTTP=$CODE"
+          cat lanyard.json || true
 
-      - name: Build human-readable status
-        id: build
+      - name: Build + inject into README (Python, safe)
         run: |
-          set -e
-          JSON=$(cat lanyard.json)
-          STATUS=$(echo "$JSON" | jq -r '.data.discord_status // "offline"')
-          LISTEN=$(echo "$JSON" | jq -r '.data.listening_to_spotify // false')
-          CUSTOM=$(echo "$JSON" | jq -r '.data.activities[]? | select(.type==4) | .state' | head -n1)
-          GAME=$(echo "$JSON" | jq -r '.data.activities[]? | select(.type==0) | .name' | head -n1)
+          python3 - << 'PY'
+          import json, os, re, sys
+          from datetime import datetime
 
-          case "$STATUS" in
-            online)  BASE="🟢 Online";;
-            idle)    BASE="🌙 Idle";;
-            dnd)     BASE="⛔ DND";;
-            offline) BASE="⚫ Offline";;
-            *)       BASE="⚪ Unknown";;
-          esac
+          # 1) Đọc JSON Lanyard
+          try:
+              data = json.load(open('lanyard.json', 'r', encoding='utf-8'))
+          except Exception:
+              data = {"success": False}
 
-          if [ "$LISTEN" = "true" ]; then
-            SONG=$(echo "$JSON" | jq -r '.data.spotify.song')
-            ARTIST=$(echo "$JSON" | jq -r '.data.spotify.artist')
-            OUT="🎧 Đang nghe: ${SONG} — ${ARTIST}"
-          elif [ -n "$GAME" ] && [ "$GAME" != "null" ]; then
-            OUT="${BASE} • 🎮 ${GAME}"
-          elif [ -n "$CUSTOM" ] && [ "$CUSTOM" != "null" ]; then
-            OUT="${BASE} • ${CUSTOM}"
-          else
-            OUT="${BASE}"
-          fi
-          echo "OUT=$OUT" >> $GITHUB_OUTPUT
+          # 2) Tạo câu status thân thiện
+          def build_out(d):
+              if not d.get('success'):
+                  return "⚫ Offline • Lanyard chưa có dữ liệu (hãy join https://discord.gg/lanyard và bật Share your activity status)"
+              info = d.get('data', {})
+              status = info.get('discord_status', 'offline')
+              base = {'online':'🟢 Online','idle':'🌙 Idle','dnd':'⛔ DND','offline':'⚫ Offline'}.get(status,'⚪ Unknown')
 
-      - name: Inject into README
-        run: |
-          set -e
-          # OUT đã có sẵn từ step trước (đặt trong $GITHUB_ENV)
-          awk -v rep="$OUT" \
-              -v start="<!-- DISCORD_STATUS_START -->" \
-              -v end="<!-- DISCORD_STATUS_END -->" '
-            BEGIN { inside=0 }
-            {
-              if (index($0, start)) { print start; print rep; inside=1; next }
-              if (index($0, end))   { inside=0; print end; next }
-              if (!inside) print
-            }
-          ' README.md > README.tmp
-          mv README.tmp README.md
+              if info.get('listening_to_spotify'):
+                  sp = info.get('spotify', {})
+                  song = sp.get('song'); artist = sp.get('artist')
+                  if song and artist:
+                      return f"🎧 Đang nghe: {song} — {artist}"
+                  return base
+
+              acts = info.get('activities') or []
+              game = next((a.get('name') for a in acts if a.get('type')==0 and a.get('name')), None)
+              custom = next((a.get('state') for a in acts if a.get('type')==4 and a.get('state')), None)
+              if game:
+                  return f"{base} • 🎮 {game}"
+              if custom:
+                  return f"{base} • {custom}"
+              return base
+
+          out = build_out(data)
+          out += " • cập nhật: " + datetime.now().strftime('%H:%M %d/%m')
+
+          # 3) Chèn vào giữa markers
+          path = 'README.md'
+          start = '<!-- DISCORD_STATUS_START -->'
+          end   = '<!-- DISCORD_STATUS_END -->'
+          with open(path, 'r', encoding='utf-8') as f:
+              s = f.read()
+          if start not in s or end not in s:
+              print('Markers not found in README.md', file=sys.stderr)
+              sys.exit(1)
+
+          pattern = re.compile(re.escape(start) + r'.*?' + re.escape(end), re.S)
+          ns = pattern.sub(start + '\n' + out + '\n' + end, s, count=1)
+          with open(path, 'w', encoding='utf-8') as f:
+              f.write(ns)
+
+          print("Injected:", out)
+          PY
 
       - name: Commit changes
         run: |
@@ -79,5 +93,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add README.md
-          git commit -m "chore: update Discord status" || echo "No changes"
+          git diff --cached --quiet && echo "No changes" && exit 0
+          git commit -m "chore: update Discord status"
           git push
