@@ -17,7 +17,6 @@
 ⚫ Offline • cập nhật: 07:52 27/11
 <!-- DISCORD_STATUS_END -->
   </p>
-  ![My Discord](https://discord-readme-badge.vercel.app/api?id=<928478301943640114>)
 </div>
 
 
