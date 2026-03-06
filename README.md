@@ -10,9 +10,6 @@
   </a>
 
   <br/>
-  <h3 align="center">Discord status</h3>
-
-  <img src="https://discord-readme-badge.vercel.app/api?id=928478301943640114" alt="My Discord"/>
 </div>
 
 
