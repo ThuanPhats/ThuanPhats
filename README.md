@@ -5,10 +5,6 @@
 
   <h1>Hi, mình là Thuận Phát</h1>
 
-  <a href="https://git.io/typing-svg">
-    <img src="https://readme-typing-svg.demolab.com?font=JetBrains+Mono&size=22&pause=1000&color=F6C72A&center=true&vCenter=true&width=500&lines=Hi+there!+%F0%9F%91%8B;Flutter+Developer;NLP+%26+Deep+Learning;Lu%C3%B4n+h%E1%BB%8Dc+%C4%91i%E1%BB%81u+m%E1%BB%9Bi" alt="Typing SVG" />
-  </a>
-
   <p align="center">
     <img src="https://komarev.com/ghpvc/?username=ThuanPhats&label=Profile%20Views&color=F6C72A&style=flat-square" alt="Views" />
   </p>
